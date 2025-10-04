@@ -1,56 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "lexer.h"
 #include "parser.h"
 #include "interpreter.h"
-#include "packet.h"
 
-#define MAX_RULES 50
-
-int main() {
-    AST rules[MAX_RULES];
-    int rule_count = 0;
-
-    // Open rule file
-    FILE *fp = fopen("rules.dsl", "r");
-    if (!fp) {
-        perror("Failed to open rules.dsl");
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <source file>\n", argv[0]);
         return 1;
     }
 
-    char line[256];
-    while (fgets(line, sizeof(line), fp)) {
-        // Skip empty lines
-        if (strlen(line) <= 1) continue;
-
-        Lexer lexer;
-        init_lexer(&lexer, line);
-
-        AST rule;
-        if (parse_rule(&lexer, &rule) == 0) {
-            rules[rule_count++] = rule;
-            if (rule_count >= MAX_RULES) break;
-        }
+    // Read source code from file
+    FILE *fp = fopen(argv[1], "r");
+    if (!fp) {
+        perror("Error opening file");
+        return 1;
     }
+
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *code = malloc(size + 1);
+    fread(code, 1, size, fp);
+    code[size] = '\0';
     fclose(fp);
 
-    // Example packets
-    Packet packets[3] = {
-        {"192.168.1.100", "192.168.1.10", 1, 0, 0, "", ""},
-        {"10.0.0.5", "10.0.0.1", 0, 0, 0, "evil.com", ""},
-        {"172.16.0.2", "172.16.0.1", 0, 0, 0, "", "http://example.com/malware/page"}
-    };
+    // Initialize lexer & parser
+    Lexer lexer;
+    init_lexer(&lexer, code);
 
-    int num_packets = 3;
+    Parser parser;
+    init_parser(&parser, &lexer);
 
-    // Evaluate each rule against each packet
-    for (int i = 0; i < num_packets; i++) {
-        for (int j = 0; j < rule_count; j++) {
-            evaluate_rule(&rules[j], &packets[i]);
-        }
-    }
+    // Parse program → AST
+    ASTNode *root = parse_program(&parser);
+
+    // Print AST (debugging)
+    print_ast(root, 0);
+    printf("Result: %d\n", eval(root));
+    // Cleanup
+    free_ast(root);
+    free(code);
 
     return 0;
 }
-

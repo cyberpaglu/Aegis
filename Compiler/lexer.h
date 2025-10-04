@@ -2,32 +2,35 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#include <stddef.h>  // for size_t
-
 typedef enum {
-    TOKEN_IF,
-    TOKEN_THEN,
-    TOKEN_IDENT,
-    TOKEN_STRING,
+    TOKEN_NUMBER,
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_STAR,
+    TOKEN_SLASH,
     TOKEN_LPAREN,
     TOKEN_RPAREN,
-    TOKEN_EOF,
-    TOKEN_UNKNOWN
+    TOKEN_SEMI,
+    TOKEN_IDENT,
+    TOKEN_IF,
+    TOKEN_THEN,
+    TOKEN_STRING,
+    TOKEN_UNKNOWN,
+    TOKEN_EOF
 } TokenType;
 
 typedef struct {
     TokenType type;
-    char text[128];   // store raw text (identifier or string)
+    int value;         // used if it's a number
+    char text[64];     // used if it's an identifier/string
 } Token;
 
-/*  ---- ADD THESE ----  */
 typedef struct {
     const char *src;
-    size_t pos;
+    int pos;
 } Lexer;
 
-void init_lexer(Lexer *l, const char *input);
+void init_lexer(Lexer *l, const char *src);
 Token next_token(Lexer *l);
 
 #endif
-
