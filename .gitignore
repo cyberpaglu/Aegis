@@ -1,0 +1,14 @@
+# Build artifacts
+obj/
+bin/
+*.o
+*.out
+
+# Editor-specific files
+.vscode/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
