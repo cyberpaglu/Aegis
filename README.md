@@ -34,13 +34,20 @@ mini scripting language defined in plain text.
 
 🛠️ Project Structure
 
-    ids-project/
-    │── lexer.h / lexer.c       # Tokenizer for DSL
-    │── parser.h / parser.c     # Parser + AST builder
-    │── interpreter.h / .c      # Rule execution engine
-    │── packet.h / packet.c     # Packet capture and parsing
-    │── main.c                  # Program entry point
-    │── rules.dsl               # Example detection rules
+    .
+    ├── src/
+    │   ├── lexer.h / lexer.c           # Tokenizer for the DSL
+    │   ├── parser.h / parser.c         # Parser and AST builder
+    │   ├── interpreter.h / interpreter.c # Rule execution engine
+    │   ├── packet.h                    # Packet capture/parsing (to be implemented)
+    │   └── main.c                      # Main program entry point
+    ├── rules/
+    │   └── rules.dsl                   # Example detection rules
+    ├── bin/
+    │   └── ids                         # The compiled executable
+    ├── obj/                            # Intermediate object files
+    ├── Makefile                        # The build script
+    └── README.md                       # This file
 
 ------------------------------------------------------------------------
 

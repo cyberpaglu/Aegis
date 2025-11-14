@@ -11,40 +11,36 @@ This project is a custom Intrusion Detection System (IDS) written in C. It's des
 **File Structure:**
 *   `src/`: Contains all the C source code (`.c`) and header files (`.h`).
 *   `rules/`: Contains the DSL rule files (`.dsl`, `.mylang`).
-*   `bin/`: Contains the compiled executable files.
+*   `bin/`: Contains the compiled executable (`ids`).
+*   `obj/`: Contains intermediate object files generated during compilation.
+*   `Makefile`: The build script for the project.
 *   `README.md`: The original detailed documentation for the project.
 *   `GEMINI.md`: A summary file for AI interaction.
 
-# 2. What to Do Next: Step-by-Step Instructions
+# 2. What to Do Next: Implement Real Packet Capture
 
-The file structure has been reorganized for clarity. Because of this, the original build process (likely a `Makefile`) will no longer work. Here are the steps to get the project running again:
+The core engine (parser, interpreter) is now working with a functional command-line interface. The next critical step is to replace the dummy packet simulation with **real packet capture**.
 
-**Step 1: Update the Makefile**
-This is the most critical next step. The project cannot be compiled until you update the build instructions.
-*   **Open the `Makefile`** (if one exists) or create a new one.
-*   **Change the source file paths:** The compiler needs to know that the source files are now in the `src/` directory. For example, a line like `gcc -c main.c` should become `gcc -c src/main.c`.
-*   **Update the output directory:** Modify the `Makefile` to place the compiled executables into the `bin/` directory. For example, `gcc main.o lexer.o -o ids` should become `gcc main.o lexer.o -o bin/ids`.
+Here is the step-by-step plan to achieve this:
 
-**Step 2: Build the Project**
-Once the `Makefile` is updated, run the build command from the project's root directory:
-```bash
-make
-```
-If the `Makefile` is correct, this will compile the source files and create the executables in the `bin/` directory.
+**Step 1: Create `packet.c`**
+*   Create a new file `src/packet.c`. This will contain the logic for using the `libpcap` library.
+*   The existing `src/packet.h` will need to be updated to declare the functions you create in `packet.c`.
 
-**Step 3: Run the IDS**
-Execute the program from the `bin/` directory, pointing it to the rules in the `rules/` directory.
-```bash
-# Example for running on a live interface (e.g., eth0)
-sudo ./bin/ids -i eth0 -r rules/rules.dsl
+**Step 2: Implement Packet Capture Functions in `packet.c`**
+*   **Create a `start_capture` function:** This function should take the network interface name (e.g., "eth0") as an argument. Inside, it will use `pcap_open_live()` to start a capture session.
+*   **Create a `process_pcap_file` function:** This function will take a pcap file path as an argument and use `pcap_open_offline()` to read from it.
+*   **Create a packet handler callback:** Both of the functions above will use `pcap_loop()` to process packets. `pcap_loop()` requires a callback function (e.g., `void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)`). This callback is the heart of the IDS.
 
-# Example for running on a pcap file
-./bin/ids -f path/to/your/test.pcap -r rules/rules.dsl
-```
+**Step 3: Integrate with `main.c`**
+*   In `main.c`, `#include "packet.h"`.
+*   Call your new `start_capture` or `process_pcap_file` function based on whether the user provided the `-i` or `-f` flag.
+*   You will need to pass the `ASTNode *root` to your capture functions so the callback can access the rules.
 
-**Step 4: Experiment with the DSL**
-*   **Modify existing rules:** Open `rules/rules.dsl` and try changing the conditions or alert messages.
-*   **Write new rules:** Add new rules to detect different types of traffic (e.g., UDP traffic, specific DNS queries, ICMP pings).
+**Step 4: Implement the Interpreter Callback Logic**
+*   Inside the `got_packet` callback in `packet.c`, you will receive the raw packet data.
+*   You will need to parse this raw data to extract information (e.g., is it a TCP packet? Is the SYN flag set?).
+*   You will then pass this structured packet information to the `eval()` function (our interpreter) along with the AST. The `eval()` function will then check the rules against a real packet instead of a dummy one.
 
 # 3. Suggestions for This Project
 
