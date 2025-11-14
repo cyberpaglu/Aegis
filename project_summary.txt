@@ -1,0 +1,59 @@
+# 1. Project Details
+
+This project is a custom Intrusion Detection System (IDS) written in C. It's designed for educational purposes to demonstrate how an IDS can capture, parse, and analyze network packets based on user-defined rules.
+
+**Core Components:**
+*   **Packet Capture:** Uses the `libpcap` library to capture live network traffic or read from `.pcap` files.
+*   **Custom Scripting Language (DSL):** A simple, custom-built language for writing detection rules (e.g., `if tcp.syn then alert("Scan detected")`).
+*   **Lexer & Parser:** A hand-written lexer (tokenizer) and a recursive descent parser that build an Abstract Syntax Tree (AST) from the DSL rules. This avoids external tools like Flex or Bison.
+*   **Interpreter:** An engine that evaluates the AST against captured packets and executes actions (like `alert` or `log`).
+
+**File Structure:**
+*   `src/`: Contains all the C source code (`.c`) and header files (`.h`).
+*   `rules/`: Contains the DSL rule files (`.dsl`, `.mylang`).
+*   `bin/`: Contains the compiled executable files.
+*   `README.md`: The original detailed documentation for the project.
+*   `GEMINI.md`: A summary file for AI interaction.
+
+# 2. What to Do Next: Step-by-Step Instructions
+
+The file structure has been reorganized for clarity. Because of this, the original build process (likely a `Makefile`) will no longer work. Here are the steps to get the project running again:
+
+**Step 1: Update the Makefile**
+This is the most critical next step. The project cannot be compiled until you update the build instructions.
+*   **Open the `Makefile`** (if one exists) or create a new one.
+*   **Change the source file paths:** The compiler needs to know that the source files are now in the `src/` directory. For example, a line like `gcc -c main.c` should become `gcc -c src/main.c`.
+*   **Update the output directory:** Modify the `Makefile` to place the compiled executables into the `bin/` directory. For example, `gcc main.o lexer.o -o ids` should become `gcc main.o lexer.o -o bin/ids`.
+
+**Step 2: Build the Project**
+Once the `Makefile` is updated, run the build command from the project's root directory:
+```bash
+make
+```
+If the `Makefile` is correct, this will compile the source files and create the executables in the `bin/` directory.
+
+**Step 3: Run the IDS**
+Execute the program from the `bin/` directory, pointing it to the rules in the `rules/` directory.
+```bash
+# Example for running on a live interface (e.g., eth0)
+sudo ./bin/ids -i eth0 -r rules/rules.dsl
+
+# Example for running on a pcap file
+./bin/ids -f path/to/your/test.pcap -r rules/rules.dsl
+```
+
+**Step 4: Experiment with the DSL**
+*   **Modify existing rules:** Open `rules/rules.dsl` and try changing the conditions or alert messages.
+*   **Write new rules:** Add new rules to detect different types of traffic (e.g., UDP traffic, specific DNS queries, ICMP pings).
+
+# 3. Suggestions for This Project
+
+*   **Improve the Makefile:** Enhance the `Makefile` by adding standard targets like `clean` (to remove compiled files) and `install` (to copy the executables to a system-wide location like `/usr/local/bin`).
+*   **Add a Testing Framework:** Create a `tests/` directory and integrate a unit testing framework for C (like CUnit or Check). Write tests for the lexer, parser, and interpreter to ensure they work correctly and to prevent regressions.
+*   **Enhance the DSL:**
+    *   Add support for variables to store state between packets.
+    *   Implement more complex data types (e.g., IP address ranges).
+    *   Add more built-in functions for packet inspection.
+*   **Improve Error Handling:** Make the parser and interpreter provide more detailed error messages with line numbers when they encounter invalid syntax in a rule file.
+*   **Implement Bytecode VM:** As mentioned in the `README.md` stretch goals, compiling the DSL to bytecode instead of interpreting the AST directly would significantly improve performance. This is a challenging but very rewarding extension.
+*   **Add Configuration File:** Instead of passing all options as command-line arguments, create a configuration file (e.g., `config.yaml` or `ids.conf`) to specify the network interface, rule files, and other settings.
