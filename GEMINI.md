@@ -50,17 +50,27 @@ To capture from a `.pcap` file:
 *   **Language:** C
 *   **Parsing:** Custom Lexer and Recursive Descent Parser (no external tools like Flex/Bison).
 *   **Rule Definition:** Custom Domain-Specific Language (DSL) defined in plain text files (e.g., `rules.dsl`).
-*   **Testing:** Testing can be done with `.pcap` files or by generating traffic with tools like `nmap`, `curl`, or `dig`.
+*   **Testing:** The program can be tested by running it with a rules file. The interpreter is currently tested with a hardcoded dummy packet.
+
+# Current Status
+
+The project has undergone a major refactoring:
+1.  **File Structure:** The project has been organized into `src`, `bin`, `obj`, and `rules` directories.
+2.  **Build System:** A `Makefile` has been added to automate the build process.
+3.  **Core Engine:** The lexer, parser, and interpreter have been rewritten to correctly process the IDS rule language (`if...then...alert`). The command-line interface in `main.c` is functional.
+4.  **Next Step:** The next major task is to implement real packet capture in `packet.c` to replace the current dummy packet simulation.
 
 # Key Files and Directories
 
-*   `Compiler/`: Contains the core source code for the IDS, including the lexer, parser, interpreter, packet capture, and main program entry point.
-    *   `lexer.h / lexer.c`: Tokenizer for the DSL.
-    *   `parser.h / parser.c`: Parser and AST builder.
+*   `src/`: Contains the core C source code.
+    *   `lexer.h / .c`: Tokenizer for the DSL.
+    *   `parser.h / .c`: Parser and AST builder.
     *   `interpreter.h / .c`: Rule execution engine.
-    *   `packet.h / packet.c`: Packet capture and parsing.
-    *   `main.c`: Program entry point.
-    *   `rules.dsl`: Example detection rules written in the custom DSL.
-    *   `test.mylang`: Another example file for the custom language.
-*   `README.md`: Provides a detailed overview, features, project structure, example DSL, getting started guide, example output, development roadmap, testing information, and license.
+    *   `packet.h`: Header for packet capture (implementation pending).
+    *   `main.c`: Main program entry point with CLI argument parsing.
+*   `rules/`: Contains the DSL rule files.
+*   `bin/`: Contains the compiled `ids` executable.
+*   `obj/`: Contains intermediate object files.
+*   `Makefile`: The build script.
+*   `README.md`: The original, detailed project documentation.
 *   `GEMINI.md`: This file, summarizing the project for AI interaction.
