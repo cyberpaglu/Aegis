@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "parser.h"
 
-ASTNode *parse_expression(Parser *parser);
-ASTNode *parse_term(Parser *parser);
-ASTNode *parse_factor(Parser *parser);
+// Forward declarations
+ASTNode *parse_statement(Parser *parser);
 
 void advance(Parser *parser) {
     parser->current = next_token(parser->lexer);
@@ -15,101 +15,175 @@ void init_parser(Parser *parser, Lexer *lexer) {
     advance(parser);
 }
 
-ASTNode *make_number(int value) {
+// --- AST Node Creation Functions ---
+
+ASTNode *make_node(NodeType type) {
     ASTNode *node = malloc(sizeof(ASTNode));
-    node->type = NODE_NUMBER;
-    node->value = value;
-    return node;
-}
-
-ASTNode *make_binary(ASTNode *left, TokenType op, ASTNode *right) {
-    ASTNode *node = malloc(sizeof(ASTNode));
-    node->type = NODE_BINARY;
-    node->binary.left = left;
-    node->binary.op = op;
-    node->binary.right = right;
-    return node;
-}
-
-ASTNode *parse_factor(Parser *parser) {
-    if (parser->current.type == TOKEN_NUMBER) {
-        ASTNode *node = make_number(parser->current.value);
-        advance(parser);
-        return node;
-    } else if (parser->current.type == TOKEN_LPAREN) {
-        advance(parser);
-        ASTNode *node = parse_expression(parser);
-        if (parser->current.type != TOKEN_RPAREN) {
-            printf("Error: expected ')'\n");
-            exit(1);
-        }
-        advance(parser);
-        return node;
-    }
-    printf("Error: unexpected token in factor\n");
-    exit(1);
-}
-
-ASTNode *parse_term(Parser *parser) {
-    ASTNode *node = parse_factor(parser);
-    while (parser->current.type == TOKEN_STAR || parser->current.type == TOKEN_SLASH) {
-        TokenType op = parser->current.type;
-        advance(parser);
-        ASTNode *right = parse_factor(parser);
-        node = make_binary(node, op, right);
-    }
-    return node;
-}
-
-ASTNode *parse_expression(Parser *parser) {
-    ASTNode *node = parse_term(parser);
-    while (parser->current.type == TOKEN_PLUS || parser->current.type == TOKEN_MINUS) {
-        TokenType op = parser->current.type;
-        advance(parser);
-        ASTNode *right = parse_term(parser);
-        node = make_binary(node, op, right);
-    }
-    return node;
-}
-
-ASTNode *parse_statement(Parser *parser) {
-    ASTNode *expr = parse_expression(parser);
-    if (parser->current.type != TOKEN_SEMI) {
-        printf("Error: expected ';'\n");
+    if (!node) {
+        perror("Failed to allocate AST node");
         exit(1);
     }
-    advance(parser);
-    return expr;
+    node->type = type;
+    node->next = NULL;
+    return node;
 }
 
-ASTNode *parse_program(Parser *parser) {
-    return parse_statement(parser);
+ASTNode *make_if_statement(ASTNode *condition, ASTNode *action) {
+    ASTNode *node = make_node(NODE_IF_STATEMENT);
+    node->if_stmt.condition = condition;
+    node->if_stmt.action = action;
+    return node;
 }
+
+ASTNode *make_condition(const char *identifier) {
+    ASTNode *node = make_node(NODE_CONDITION);
+    strncpy(node->condition.identifier, identifier, sizeof(node->condition.identifier) - 1);
+    node->condition.identifier[sizeof(node->condition.identifier) - 1] = '\0';
+    return node;
+}
+
+ASTNode *make_action(const char *message) {
+    ASTNode *node = make_node(NODE_ACTION);
+    strncpy(node->action.message, message, sizeof(node->action.message) - 1);
+    node->action.message[sizeof(node->action.message) - 1] = '\0';
+    return node;
+}
+
+// --- Parser Logic ---
+
+// Parses an action, e.g., alert("message")
+// Note: This is a simplified version. A real one would need to parse different action types.
+ASTNode *parse_action(Parser *parser) {
+    if (parser->current.type != TOKEN_ALERT) {
+        printf("Error: Expected 'alert' keyword.\n");
+        exit(1);
+    }
+    advance(parser); // Consume 'alert'
+
+    if (parser->current.type != TOKEN_LPAREN) {
+        printf("Error: Expected '(' after 'alert'.\n");
+        exit(1);
+    }
+    advance(parser); // Consume '('
+
+    if (parser->current.type != TOKEN_STRING) {
+        printf("Error: Expected a string message inside alert().\n");
+        exit(1);
+    }
+    ASTNode *action_node = make_action(parser->current.text);
+    advance(parser); // Consume string
+
+    if (parser->current.type != TOKEN_RPAREN) {
+        printf("Error: Expected ')' after alert message.\n");
+        exit(1);
+    }
+    advance(parser); // Consume ')'
+
+    return action_node;
+}
+
+// Parses a statement, e.g., if tcp.syn then alert("...")
+ASTNode *parse_statement(Parser *parser) {
+    if (parser->current.type != TOKEN_IF) {
+        printf("Error: Expected 'if' keyword to start a rule.\n");
+        exit(1);
+    }
+    advance(parser); // Consume 'if'
+
+    if (parser->current.type != TOKEN_IDENT) {
+        printf("Error: Expected a condition identifier (e.g., 'tcp.syn') after 'if'.\n");
+        exit(1);
+    }
+    ASTNode *condition_node = make_condition(parser->current.text);
+    advance(parser); // Consume identifier
+
+    if (parser->current.type != TOKEN_THEN) {
+        printf("Error: Expected 'then' keyword after condition.\n");
+        exit(1);
+    }
+    advance(parser); // Consume 'then'
+
+    ASTNode *action_node = parse_action(parser);
+
+    return make_if_statement(condition_node, action_node);
+}
+
+// Parses the entire program as a list of statements
+ASTNode *parse_program(Parser *parser) {
+    ASTNode *program_node = make_node(NODE_PROGRAM);
+    program_node->program.statements = NULL;
+
+    ASTNode *head = NULL;
+    ASTNode *current_stmt = NULL;
+
+    while (parser->current.type != TOKEN_EOF) {
+        ASTNode *stmt = parse_statement(parser);
+        if (!head) {
+            head = stmt;
+            current_stmt = stmt;
+        } else {
+            current_stmt->next = stmt;
+            current_stmt = stmt;
+        }
+    }
+
+    program_node->program.statements = head;
+    return program_node;
+}
+
+
+// --- AST Utility Functions (Updated) ---
 
 void print_ast(ASTNode *node, int indent) {
+    if (!node) return;
+
     for (int i = 0; i < indent; i++) printf("  ");
-    if (node->type == NODE_NUMBER) {
-        printf("Number(%d)\n", node->value);
-    } else if (node->type == NODE_BINARY) {
-        printf("Binary(");
-        switch (node->binary.op) {
-            case TOKEN_PLUS: printf("+"); break;
-            case TOKEN_MINUS: printf("-"); break;
-            case TOKEN_STAR: printf("*"); break;
-            case TOKEN_SLASH: printf("/"); break;
-            default: printf("?"); break;
-        }
-        printf(")\n");
-        print_ast(node->binary.left, indent + 1);
-        print_ast(node->binary.right, indent + 1);
+
+    switch (node->type) {
+        case NODE_PROGRAM:
+            printf("Program\n");
+            print_ast(node->program.statements, indent + 1);
+            break;
+        case NODE_IF_STATEMENT:
+            printf("IfStatement\n");
+            print_ast(node->if_stmt.condition, indent + 1);
+            print_ast(node->if_stmt.action, indent + 1);
+            break;
+        case NODE_CONDITION:
+            printf("Condition(%s)\n", node->condition.identifier);
+            break;
+        case NODE_ACTION:
+            printf("Action(alert: \"%s\")\n", node->action.message);
+            break;
+    }
+
+    // Print next statement at the same level
+    if (node->next) {
+        print_ast(node->next, indent);
     }
 }
 
 void free_ast(ASTNode *node) {
     if (!node) return;
-    if (node->type == NODE_BINARY) {
-        free_ast(node->binary.left);
-        free_ast(node->binary.right);
+
+    // Free children first
+    switch (node->type) {
+        case NODE_PROGRAM:
+            free_ast(node->program.statements);
+            break;
+        case NODE_IF_STATEMENT:
+            free_ast(node->if_stmt.condition);
+            free_ast(node->if_stmt.action);
+            break;
+        case NODE_CONDITION:
+        case NODE_ACTION:
+            // No children to free for these node types
+            break;
     }
+
+    // Free the next statement in the list
+    free_ast(node->next);
+
+    // Free the node itself
     free(node);
 }

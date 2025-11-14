@@ -14,6 +14,7 @@ typedef enum {
     TOKEN_IDENT,
     TOKEN_IF,
     TOKEN_THEN,
+    TOKEN_ALERT,
     TOKEN_STRING,
     TOKEN_UNKNOWN,
     TOKEN_EOF

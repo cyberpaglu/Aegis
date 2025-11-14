@@ -1,1 +1,9 @@
-GEMINI.md
+# Compiled files and build directories
+/bin/
+/obj/
+
+# Other artifacts
+*.o
+*.out
+*.log
+*.pcap

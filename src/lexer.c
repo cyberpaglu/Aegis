@@ -35,13 +35,15 @@ static Token read_number(Lexer *l) {
 static Token read_identifier(Lexer *l) {
     Token t;
     int start = l->pos;
-    while (isalnum(peek(l)) || peek(l) == '_') advance(l);
+    // Allow '.' in identifiers, e.g., "tcp.syn"
+    while (isalnum(peek(l)) || peek(l) == '_' || peek(l) == '.') advance(l);
     int len = l->pos - start;
     strncpy(t.text, l->src + start, len);
     t.text[len] = '\0';
 
     if (strcmp(t.text,"if")==0) t.type = TOKEN_IF;
     else if (strcmp(t.text,"then")==0) t.type = TOKEN_THEN;
+    else if (strcmp(t.text,"alert")==0) t.type = TOKEN_ALERT;
     else t.type = TOKEN_IDENT;
     return t;
 }
